@@ -1,24 +1,21 @@
-import React, { useState } from "react";
-import { View, Text, FlatList, Modal, StyleSheet, Button } from "react-native";
+import { useState } from "react";
+import { Button, FlatList, Modal, StyleSheet, Text, View } from "react-native";
+import { Input, Rating } from "react-native-elements";
 import { useSelector, useDispatch } from "react-redux";
 import RenderCampsite from "../features/campsites/RenderCampsite";
+import { toggleFavorite } from "../features/favorites/favoritesSlice";
 import { postComment } from "../features/comments/commentsSlice";
+import * as Animatable from "react-native-animatable";
 
 const CampsiteInfoScreen = ({ route }) => {
-  const { campsiteId } = route.params;
-  const campsites = useSelector((state) => state.campsites.campsitesArray);
-  const comments = useSelector((state) => state.comments.commentsArray);
-  const campsite = campsites.find((campsite) => campsite.id === campsiteId);
-  const campsiteComments = comments.filter(
-    (comment) => comment.campsiteId === campsiteId
-  );
-
-  const dispatch = useDispatch();
-
+  const { campsite } = route.params;
+  const comments = useSelector((state) => state.comments);
+  const favorites = useSelector((state) => state.favorites);
   const [showModal, setShowModal] = useState(false);
   const [rating, setRating] = useState(5);
   const [author, setAuthor] = useState("");
   const [text, setText] = useState("");
+  const dispatch = useDispatch();
 
   const handleSubmit = () => {
     const newComment = {
@@ -39,44 +36,50 @@ const CampsiteInfoScreen = ({ route }) => {
 
   const renderCommentItem = ({ item }) => {
     return (
-      <View style={{ margin: 10 }}>
+      <View style={styles.commentItem}>
         <Text style={{ fontSize: 14 }}>{item.text}</Text>
         <Rating
+          startingValue={item.rating}
           imageSize={10}
           readonly
-          startingValue={item.rating}
           style={{ alignItems: "flex-start", paddingVertical: "5%" }}
         />
-        <Text style={{ fontSize: 12 }}>{`-- ${item.author}, ${new Date(
-          item.date
-        ).toLocaleDateString("en-US", {
-          year: "numeric",
-          month: "short",
-          day: "numeric",
-        })}`}</Text>
+        <Text style={{ fontSize: 12 }}>
+          {`-- ${item.author}, ${item.date}`}
+        </Text>
       </View>
     );
   };
 
   return (
-    <>
-      <RenderCampsite
-        campsite={campsite}
-        onShowModal={() => setShowModal(!showModal)}
-      />
+    <Animatable.View animation="fadeInUp" duration={2000} delay={1000}>
       <FlatList
-        data={campsiteComments}
+        data={comments.commentsArray.filter(
+          (comment) => comment.campsiteId === campsite.id
+        )}
         renderItem={renderCommentItem}
         keyExtractor={(item) => item.id.toString()}
+        contentContainerStyle={{
+          marginHorizontal: 20,
+          paddingVertical: 20,
+        }}
+        ListHeaderComponent={
+          <>
+            <RenderCampsite
+              campsite={campsite}
+              isFavorite={favorites.includes(campsite.id)}
+              markFavorite={() => dispatch(toggleFavorite(campsite.id))}
+              onShowModal={() => setShowModal(!showModal)}
+            />
+            <Text style={styles.commentsTitle}>Comments</Text>
+          </>
+        }
       />
       <Modal
         animationType="slide"
         transparent={false}
         visible={showModal}
-        onRequestClose={() => {
-          setShowModal(!showModal);
-          resetForm();
-        }}
+        onRequestClose={() => setShowModal(!showModal)}
       >
         <View style={styles.modal}>
           <Rating
@@ -102,31 +105,45 @@ const CampsiteInfoScreen = ({ route }) => {
           />
           <View style={{ margin: 10 }}>
             <Button
-              title="Submit"
-              color="#5637DD"
               onPress={() => {
                 handleSubmit();
                 resetForm();
               }}
+              color="#5637DD"
+              title="Submit"
             />
           </View>
           <View style={{ margin: 10 }}>
             <Button
-              title="Cancel"
-              color="#808080"
               onPress={() => {
                 setShowModal(!showModal);
                 resetForm();
               }}
+              color="#808080"
+              title="Cancel"
             />
           </View>
         </View>
       </Modal>
-    </>
+    </Animatable.View>
   );
 };
 
 const styles = StyleSheet.create({
+  commentsTitle: {
+    textAlign: "center",
+    backgroundColor: "#fff",
+    fontSize: 16,
+    fontWeight: "bold",
+    color: "#43484D",
+    padding: 10,
+    paddingTop: 30,
+  },
+  commentItem: {
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    backgroundColor: "#fff",
+  },
   modal: {
     justifyContent: "center",
     margin: 20,
