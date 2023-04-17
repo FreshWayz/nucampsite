@@ -228,6 +228,18 @@ const CustomDrawerContent = (props) => (
 const Main = () => {
   const dispatch = useDispatch();
 
+  const showNetInfo = async () => {
+    const netInfo = await NetInfo.fetch();
+    if (Platform.OS === "ios") {
+      Alert.alert("Initial Network Connectivity Type:", netInfo.type);
+    } else {
+      ToastAndroid.show(
+        "Initial Network Connectivity Type: " + netInfo.type,
+        ToastAndroid.LONG
+      );
+    }
+  };
+
   useEffect(() => {
     dispatch(fetchCampsites());
     dispatch(fetchPromotions());
